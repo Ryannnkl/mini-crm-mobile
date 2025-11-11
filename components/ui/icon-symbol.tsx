@@ -19,6 +19,10 @@ const MAPPING = {
   'person.fill': 'person',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'network': 'network-check',
+  'globe': 'web',
+  'phone': 'phone',
+  'checkmark.bubble': 'verified'
 } as IconMapping;
 
 /**
