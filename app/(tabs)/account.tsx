@@ -1,16 +1,20 @@
+import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { authClient } from '@/lib/auth-client';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Button, Image, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Image, StyleSheet, View } from 'react-native';
 
 export default function AccountScreen() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const { data: session } = authClient.useSession();
   const user = session?.user;
 
   const handleLogout = async () => {
+    setLoading(true);
     await authClient.signOut();
     router.replace('/signin');
   };
@@ -28,7 +32,7 @@ export default function AccountScreen() {
               />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <MaterialIcons name="person" size={60} color="#666" />
+                <IconSymbol name="person" size={60} color="#666" />
               </View>
             )}
           </View>
@@ -38,7 +42,7 @@ export default function AccountScreen() {
           <View style={styles.emailContainer}>
             <ThemedText style={styles.email}>{user?.email}</ThemedText>
             {user?.emailVerified ? (
-              <MaterialIcons name="verified" size={18} color="#4CAF50" style={styles.verifiedIcon} />
+              <IconSymbol name="checkmark.bubble" size={18} color="#4CAF50" style={styles.verifiedIcon} />
             ) : (
               <View style={styles.verificationBadge}>
                 <ThemedText style={styles.verificationText}>Não verificado</ThemedText>
@@ -57,7 +61,7 @@ export default function AccountScreen() {
       </View>
       
       <View style={styles.logoutButtonContainer}>
-        <Button title="Logout" onPress={handleLogout} />
+        <ThemedButton text="Sair" onPress={handleLogout} style={{backgroundColor: '#dc3545'}} disabled={loading} isLoading={loading} />
       </View>
     </ThemedView>
   );

@@ -1,3 +1,5 @@
+import { ThemedButton } from "@/components/themed-button";
+import { ThemedInput } from "@/components/themed-input";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { authClient } from "@/lib/auth-client";
@@ -6,9 +8,7 @@ import { useState } from "react";
 import {
   Alert,
   StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 export default function SignInScreen() {
@@ -36,7 +36,7 @@ export default function SignInScreen() {
             router.replace("/(tabs)");
           },
           onError: (error) => {
-            console.error("Erro no login:", error);
+            console.log("Erro no login:", error);
             Alert.alert(
               "Erro",
               "Não foi possível fazer login. Verifique suas credenciais e tente novamente."
@@ -45,7 +45,7 @@ export default function SignInScreen() {
         }
       );
     } catch (error) {
-      console.error(error);
+      console.log(error);
       Alert.alert(
         "Erro",
         "Não foi possível fazer login. Verifique suas credenciais e tente novamente."
@@ -60,33 +60,21 @@ export default function SignInScreen() {
       <ThemedText type="title" style={styles.title}>
         Login
       </ThemedText>
-      <TextInput
-        style={styles.input}
+      <ThemedInput
         placeholder="E-mail"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
-        placeholderTextColor="#888"
       />
-      <TextInput
-        style={styles.input}
+      <ThemedInput
         placeholder="Senha"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        placeholderTextColor="#888"
       />
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleSignIn}
-          disabled={isLoading}
-        >
-          <ThemedText style={styles.buttonText}>
-            {isLoading ? "Entrando..." : "Entrar"}
-          </ThemedText>
-        </TouchableOpacity>
+        <ThemedButton text="Entrar" onPress={handleSignIn} isLoading={isLoading} disabled={isLoading} />
       </View>
       <Link href="/signup" style={styles.link}>
         <ThemedText type="link">Não tem uma conta? Cadastre-se</ThemedText>
@@ -105,37 +93,9 @@ const styles = StyleSheet.create({
   title: {
     marginBottom: 24,
   },
-  input: {
-    width: "100%",
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    fontSize: 16,
-    color: "#fff"
-  },
   buttonContainer: {
     width: "100%",
     marginTop: 8,
-  },
-  button: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
   },
   link: {
     marginTop: 24,
