@@ -1,98 +1,203 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { CompanyCard } from "@/components/company-card";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { authClient } from "@/lib/auth-client";
+import { GET_COMPANIES } from "@/lib/graphql/queries";
+import { useQuery } from "@apollo/client/react";
+import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import type { Company } from "@/types/company.type";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+  const { data, loading, error, refetch } = useQuery<{ companies: Company[] }>(
+    GET_COMPANIES
+  );
+
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      await refetch();
+    } catch (err) {
+      console.error("Error refreshing:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleAddCompany = () => {
+    router.push("/add-company");
+  };
+
+  const handleCompanyPress = (companyId: string, company: Company) => {
+    router.push({
+      pathname: "/company/[id]",
+      params: { id: companyId, company: JSON.stringify(company) },
+    });
+  };
+
+  if (!user) {
+    return (
+      <ThemedView style={styles.centerContainer}>
+        <ThemedText>Faça login para ver suas empresas</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (loading && !isRefreshing) {
+    return (
+      <ThemedView style={styles.centerContainer}>
+        <ActivityIndicator size="large" />
+        <ThemedText style={{ marginTop: 10 }}>
+          Carregando empresas...
         </ThemedText>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+    );
+  }
+
+  if (error) {
+    return (
+      <ThemedView style={styles.centerContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color="#dc3545" />
+        <ThemedText style={styles.errorText}>
+          Ocorreu um erro ao carregar as empresas
         </ThemedText>
+        <Pressable
+          style={[styles.button, styles.retryButton]}
+          onPress={handleRefresh}
+        >
+          <ThemedText style={styles.buttonText}>Tentar novamente</ThemedText>
+        </Pressable>
       </ThemedView>
-    </ParallaxScrollView>
+    );
+  }
+
+  const companies = data?.companies || [];
+
+  return (
+    <ThemedView style={styles.container}>
+      <ThemedView style={styles.header}>
+        <ThemedText type="title">Empresas</ThemedText>
+      </ThemedView>
+
+      <FlatList
+        data={companies}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <CompanyCard
+            company={item}
+            onPress={() => handleCompanyPress(item.id, item)}
+          />
+        )}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={["#007AFF"]}
+            tintColor="#007AFF"
+          />
+        }
+        ListEmptyComponent={
+          <ThemedView style={styles.emptyContainer}>
+            <Ionicons name="business-outline" size={48} color="#999" />
+            <ThemedText style={styles.emptyText}>
+              Nenhuma empresa cadastrada
+            </ThemedText>
+          </ThemedView>
+        }
+      />
+
+      <TouchableOpacity style={styles.addButton} onPress={handleAddCompany}>
+        <Ionicons name="add" size={28} color="white" />
+      </TouchableOpacity>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  errorText: {
+    marginTop: 16,
+    textAlign: "center",
+    color: "#dc3545",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  retryButton: {
+    marginTop: 16,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  button: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    marginTop: Constants.statusBarHeight,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingBottom: 16,
+  },
+  refreshButton: {
+    padding: 8,
+  },
+  listContent: {
+    paddingBottom: 80,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  emptyText: {
+    marginTop: 16,
+    textAlign: "center",
+    color: "#999",
+  },
+  addButton: {
+    position: "absolute",
+    right: 24,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#007AFF",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
 });
