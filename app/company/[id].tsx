@@ -1,11 +1,14 @@
 import { ThemedPicker } from "@/components/themed-picker";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { DELETE_COMPANY, UPDATE_COMPANY_STATUS } from "@/lib/graphql/mutations";
+import { GET_COMPANIES } from "@/lib/graphql/queries";
 import {
   Company,
   CompanyStatus,
   companyStatusColumns,
 } from "@/types/company.type";
+import { useMutation } from "@apollo/client/react";
 import { Ionicons } from "@expo/vector-icons";
 import type { ItemValue } from "@react-native-picker/picker/typings/Picker";
 import { router, useGlobalSearchParams } from "expo-router";
@@ -19,30 +22,108 @@ export default function CompanyScreen() {
   );
   const [showActions, setShowActions] = useState(false);
 
-  const handleStatusChange = (itemValue: ItemValue, itemIndex: number) => {
+  const [deleteCompany, { loading: deleting }] = useMutation(DELETE_COMPANY, {
+    variables: {
+      id: parseInt(company.id as string, 10),
+    },
+    update: (cache) => {
+      const companyId = company.id;
+      const existingCompanies = cache.readQuery<{ companies: Company[] }>({
+        query: GET_COMPANIES,
+      });
+
+      if (existingCompanies) {
+        cache.writeQuery({
+          query: GET_COMPANIES,
+          data: {
+            companies: existingCompanies.companies.filter(
+              (c) => c.id !== companyId
+            ),
+          },
+        });
+      }
+    },
+    onCompleted: () => {
+      router.back();
+    },
+    onError: (error: Error) => {
+      console.log("Erro ao deletar empresa", error);
+      Alert.alert("Erro", "Erro ao deletar empresa. Tente novamente.");
+    },
+  });
+
+  const [updateStatus] = useMutation(UPDATE_COMPANY_STATUS, {
+    update: (cache, result) => {
+      const data = result.data as
+        | { updateCompanyStatus: { id: string; status: string } }
+        | undefined;
+      if (!data?.updateCompanyStatus) return;
+      const updatedCompany = data.updateCompanyStatus;
+
+      const existingCompanies = cache.readQuery<{ companies: Company[] }>({
+        query: GET_COMPANIES,
+      });
+
+      if (existingCompanies) {
+        cache.writeQuery({
+          query: GET_COMPANIES,
+          data: {
+            companies: existingCompanies.companies.map((c) =>
+              c.id === updatedCompany.id
+                ? { ...c, status: updatedCompany.status }
+                : c
+            ),
+          },
+        });
+      }
+    },
+    onError: (error) => {
+      console.log("Erro ao atualizar status", error);
+      Alert.alert("Erro", "Erro ao atualizar status. Tente novamente.");
+    },
+  });
+
+  const handleStatusChange = async (itemValue: ItemValue) => {
     const status = itemValue as CompanyStatus;
+
     setCompany((prev) => ({
       ...prev,
       status,
     }));
-    // TODO: Add API call to update company status
+
+    try {
+      await updateStatus({
+        variables: {
+          id: parseInt(company.id as string, 10),
+          input: {
+            status,
+          },
+        },
+      });
+
+    } catch (error) {
+      setCompany((prev) => ({
+        ...prev,
+        status: company.status,
+      }));
+    }
   };
 
   const handleDelete = () => {
     Alert.alert(
-      "Delete Company",
-      "Are you sure you want to delete this company?",
+      "Deletar Empresa",
+      "Tem certeza que deseja deletar esta empresa? Esta ação não pode ser desfeita.",
       [
         {
-          text: "Cancel",
+          text: "Cancelar",
           style: "cancel",
         },
         {
-          text: "Delete",
+          text: deleting ? "Deletando..." : "Deletar",
           style: "destructive",
           onPress: () => {
-            // TODO: Add API call to delete company
-            router.back();
+            if (deleting) return;
+            deleteCompany();
           },
         },
       ]
@@ -51,12 +132,7 @@ export default function CompanyScreen() {
 
   const actionItems = [
     {
-      label: "Edit",
-      icon: "pencil",
-      onPress: () => console.log("Edit company"),
-    },
-    {
-      label: "Delete",
+      label: "Deletar",
       icon: "trash",
       onPress: handleDelete,
       destructive: true,
@@ -71,7 +147,7 @@ export default function CompanyScreen() {
           style={styles.actionButton}
           onPress={() => setShowActions(!showActions)}
         >
-          <Ionicons name="ellipsis-vertical" size={24} color="#007AFF" />
+          <Ionicons name="ellipsis-vertical" size={24} color="#777" />
         </TouchableOpacity>
 
         {showActions && (
@@ -107,7 +183,16 @@ export default function CompanyScreen() {
       </View>
 
       <ThemedView style={styles.section}>
-        <View style={{ flexDirection: "column", alignItems: "flex-start", justifyContent: "center", height: '100%', maxHeight: 100, width: '100%' }}>
+        <View
+          style={{
+            flexDirection: "column",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            height: "100%",
+            maxHeight: 100,
+            width: "100%",
+          }}
+        >
           <ThemedText style={styles.label}>Status</ThemedText>
           <View style={styles.pickerContainer}>
             <ThemedPicker
@@ -120,32 +205,28 @@ export default function CompanyScreen() {
             />
           </View>
         </View>
-
         {company.phone && (
           <View style={styles.infoRow}>
-            <ThemedText style={styles.label}>Phone</ThemedText>
+            <ThemedText style={styles.label}>Telefone</ThemedText>
             <ThemedText>{company?.phone}</ThemedText>
           </View>
         )}
-
         {company.website && (
           <View style={styles.infoRow}>
             <ThemedText style={styles.label}>Website</ThemedText>
             <ThemedText style={styles.link}>{company.website}</ThemedText>
           </View>
         )}
-
         {company.leadSource && (
           <View style={styles.infoRow}>
-            <ThemedText style={styles.label}>Lead Source</ThemedText>
+            <ThemedText style={styles.label}>Fonte de Lead</ThemedText>
             <ThemedText>{company.leadSource}</ThemedText>
           </View>
         )}
-
         {company.potentialValue && (
           <View style={styles.infoRow}>
-            <ThemedText style={styles.label}>Potential Value</ThemedText>
-            <ThemedText>${company.potentialValue.toLocaleString()}</ThemedText>
+            <ThemedText style={styles.label}>Valor Potencial</ThemedText>
+            <ThemedText>{'$' + company.potentialValue.toLocaleString()}</ThemedText>
           </View>
         )}
       </ThemedView>
@@ -211,7 +292,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pickerContainer: {
-    width:'50%',
+    width: "50%",
     borderWidth: 1,
     borderColor: "#e0e0e0",
     borderRadius: 8,

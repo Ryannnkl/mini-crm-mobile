@@ -18,6 +18,7 @@ import {
 } from "react-native";
 
 import type { Company } from "@/types/company.type";
+import { StatusBar } from "expo-status-bar";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -126,6 +127,7 @@ export default function HomeScreen() {
       <TouchableOpacity style={styles.addButton} onPress={handleAddCompany}>
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
+      <StatusBar style="auto"/>
     </ThemedView>
   );
 }
@@ -158,8 +160,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    marginTop: Constants.statusBarHeight,
+    paddingTop: Constants.statusBarHeight + 16,
   },
   header: {
     flexDirection: "row",
