@@ -3,7 +3,7 @@ import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 
 export const authClient = createAuthClient({
-    baseURL: process.env.BETTER_AUTH_BASE_URL!,
+    baseURL: process.env.EXPO_PUBLIC_BETTER_AUTH_BASE_URL!,
     plugins: [
         expoClient({
             scheme: "mobile",
