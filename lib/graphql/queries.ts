@@ -1,5 +1,16 @@
 import { gql } from "@apollo/client";
 
+export const GET_INTERACTIONS = gql`
+  query GetInteractions($companyId: Int!) {
+    interactions(companyId: $companyId) {
+      id
+      content
+      companyId
+      createdAt
+    }
+  }
+`;
+
 export const GET_COMPANIES = gql`
   query GetCompanies {
     companies {

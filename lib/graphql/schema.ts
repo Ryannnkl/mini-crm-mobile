@@ -1,4 +1,15 @@
 export const typeDefs = `#graphql
+  type Interaction {
+    id: Int!
+    type: String!
+    content: String!
+    interactionDate: String!
+    companyId: Int!
+    userId: String!
+    createdAt: String!
+    updatedAt: String!
+  }
+
   type Company {
     id: Int!
     name: String!
@@ -10,6 +21,7 @@ export const typeDefs = `#graphql
     potentialValue: Int!
     leadSource: LeadSource!
     userId: String!
+    interactions: [Interaction!]!
   }
 
   enum CompanyStatus {
@@ -29,12 +41,29 @@ export const typeDefs = `#graphql
   type Query {
     companies: [Company!]!
     company(id: Int!): Company
+    interactions(companyId: Int!): [Interaction!]!
+  }
+
+  input CreateInteractionInput {
+    type: String!
+    content: String!
+    interactionDate: String!
+    companyId: Int!
+  }
+
+  input UpdateInteractionInput {
+    type: String
+    content: String
+    interactionDate: String
   }
 
   type Mutation {
     createCompany(input: CreateCompanyInput!): Company!
     updateCompany(id: Int!, input: UpdateCompanyInput!): Company!
     deleteCompany(id: Int!): Boolean!
+    createInteraction(input: CreateInteractionInput!): Interaction!
+    updateInteraction(id: Int!, input: UpdateInteractionInput!): Interaction!
+    deleteInteraction(id: Int!): Boolean!
   }
 
   input CreateCompanyInput {
