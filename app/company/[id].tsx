@@ -10,7 +10,7 @@ import {
   Platform,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 import { ThemedInput } from "@/components/themed-input";
@@ -366,12 +366,12 @@ export default function CompanyScreen() {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
-      <ThemedView style={styles.container}>
+    <ThemedView style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 50}
+      >
         {renderHeader()}
         <FlatList
           data={interactionsData?.interactions || []}
@@ -431,23 +431,25 @@ export default function CompanyScreen() {
             />
           </TouchableOpacity>
         </ThemedView>
-      </ThemedView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
     padding: 16,
   },
   flatList: {
-    width: "100%",
     flex: 1,
   },
   flatListContent: {
     padding: 8,
-    paddingBottom: 100,
+    paddingBottom: 16,
   },
   header: {
     flexDirection: "row",
@@ -458,23 +460,6 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
   },
-  interactionsSection: {
-    width: "100%",
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
   emptyContainer: {
     minHeight: 100,
     justifyContent: "center",
@@ -484,15 +469,8 @@ const styles = StyleSheet.create({
   emptyText: {
     color: "#666",
   },
-  noInteractions: {
-    textAlign: "center",
-    color: "#fff",
-    marginTop: 16,
-  },
   interactionContainer: {
     marginBottom: 12,
-    width: "100%",
-    minHeight: 60,
     borderRadius: 16,
     borderWidth: 1,
   },
@@ -501,46 +479,31 @@ const styles = StyleSheet.create({
   },
   interactionText: {
     fontSize: 16,
-    color: "#333",
-    marginBottom: 4,
   },
   interactionDate: {
     fontSize: 12,
-    color: "#666",
     marginTop: 4,
-  },
-  interactionsList: {
-    width: "100%",
-    minHeight: 50,
-  },
-  interactionsFlatList: {
-    width: "100%",
-    maxHeight: 300,
+    color: "#777",
   },
   inputContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
     flexDirection: "row",
     padding: 12,
-    borderTopWidth: 1,
+    borderRadius: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
+    gap: 8,
   },
   input: {
     flex: 1,
-    maxWidth: "85%",
     minHeight: 48,
     maxHeight: 120,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
     borderRadius: 24,
-    marginRight: 8,
     fontSize: 16,
   },
   sendButton: {
