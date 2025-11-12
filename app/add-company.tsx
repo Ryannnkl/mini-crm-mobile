@@ -89,16 +89,20 @@ export default function AddCompanyScreen() {
             Origem do Lead
           </ThemedText>
 
-          <ThemedPicker
-            items={[
-              { label: "Website", value: "website" },
-              { label: "Referência", value: "referral" },
-              { label: "Chamada Telefônica", value: "cold_call" },
-              { label: "Outro", value: "other" },
-            ]}
-            selectedValue={formData.leadSource}
-            onValueChange={(value) => setFormData({ ...formData, leadSource: value })}
-          />
+          <View style={styles.selectContainer}>
+            <ThemedPicker
+              items={[
+                { label: "Website", value: "website" },
+                { label: "Referência", value: "referral" },
+                { label: "Chamada Telefônica", value: "cold_call" },
+                { label: "Outro", value: "other" },
+              ]}
+              selectedValue={formData.leadSource}
+              onValueChange={(value) =>
+                setFormData({ ...formData, leadSource: value })
+              }
+            />
+          </View>
         </View>
 
         <ThemedButton
@@ -141,15 +145,11 @@ const styles = StyleSheet.create({
   label: {
     marginBottom: 8,
   },
-  selectContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    selectContainer: {
+    width: "100%",
     borderWidth: 1,
+    borderColor: "#e0e0e0",
     borderRadius: 8,
-    borderColor: '#fff',
-    padding: 12,
-    color: '#FFF'
   },
   selectText: {
     flex: 1,
