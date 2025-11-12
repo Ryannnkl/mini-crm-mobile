@@ -89,13 +89,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
+    gap: 8
   },
   title: {
     marginBottom: 24,
   },
   buttonContainer: {
     width: "100%",
-    marginTop: 8,
   },
   link: {
     marginTop: 24,

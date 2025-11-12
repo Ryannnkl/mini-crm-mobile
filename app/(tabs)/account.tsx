@@ -16,7 +16,7 @@ export default function AccountScreen() {
   const handleLogout = async () => {
     setLoading(true);
     await authClient.signOut();
-    router.replace('/signin');
+    router.replace('/(stack)/signin');
   };
 
   return (
