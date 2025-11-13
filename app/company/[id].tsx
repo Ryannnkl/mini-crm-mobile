@@ -1,11 +1,10 @@
-import { useMutation, useQuery } from "@apollo/client/react";
+import { useMutation } from "@apollo/client/react";
 import { Ionicons } from "@expo/vector-icons";
 import type { ItemValue } from "@react-native-picker/picker/typings/Picker";
 import { router, useGlobalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
-  FlatList,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -13,35 +12,17 @@ import {
   View,
 } from "react-native";
 
-import { ThemedInput } from "@/components/themed-input";
+import { InteractionsList } from "@/components/interactions-list";
 import { ThemedPicker } from "@/components/themed-picker";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import {
-  CREATE_INTERACTION,
-  DELETE_COMPANY,
-  UPDATE_COMPANY_STATUS,
-} from "@/lib/graphql/mutations";
-import { GET_COMPANIES, GET_INTERACTIONS } from "@/lib/graphql/queries";
+import { DELETE_COMPANY, UPDATE_COMPANY_STATUS } from "@/lib/graphql/mutations";
+import { GET_COMPANIES } from "@/lib/graphql/queries";
 import {
   Company,
   CompanyStatus,
   companyStatusColumns,
 } from "@/types/company.type";
-
-interface Interaction {
-  id: number | string;
-  content: string;
-  companyId: number;
-  createdAt: string;
-  type?: string;
-  userId?: string;
-  updatedAt?: string;
-}
-
-interface InteractionsData {
-  interactions: Interaction[];
-}
 
 export default function CompanyScreen() {
   const params = useGlobalSearchParams();
@@ -105,6 +86,7 @@ export default function CompanyScreen() {
       }
     },
     onError: (error) => {
+      console.error(error);
       Alert.alert("Erro", "Erro ao atualizar status. Tente novamente.");
     },
   });
@@ -155,85 +137,6 @@ export default function CompanyScreen() {
     );
   };
 
-  const [newInteraction, setNewInteraction] = useState("");
-  const [isSending, setIsSending] = useState(false);
-
-  const {
-    data: interactionsData,
-    loading: loadingInteractions,
-    error: interactionsError,
-    refetch,
-  } = useQuery<InteractionsData>(GET_INTERACTIONS, {
-    variables: { companyId: parseInt(company.id as string, 10) },
-    fetchPolicy: "cache-and-network",
-  });
-
-  const [createInteraction] = useMutation<{ createInteraction: Interaction }>(
-    CREATE_INTERACTION,
-    {
-      onCompleted: (data) => {
-        setNewInteraction("");
-        refetch();
-      },
-      onError: () => {
-        Alert.alert(
-          "Erro",
-          "Não foi possível enviar a interação. Tente novamente."
-        );
-      },
-    }
-  );
-
-  const handleSendInteraction = async () => {
-    if (!newInteraction.trim()) return;
-
-    setIsSending(true);
-    const companyId = parseInt(company.id as string, 10);
-
-    try {
-      await createInteraction({
-        variables: {
-          companyId,
-          content: newInteraction.trim(),
-        },
-        update: (cache, { data }) => {
-          if (!data?.createInteraction) return;
-
-          const existingInteractions = cache.readQuery<InteractionsData>({
-            query: GET_INTERACTIONS,
-            variables: { companyId },
-          });
-
-          if (existingInteractions) {
-            cache.writeQuery({
-              query: GET_INTERACTIONS,
-              variables: { companyId },
-              data: {
-                interactions: [
-                  {
-                    ...data.createInteraction,
-                    id: data.createInteraction.id.toString(),
-                  },
-                  ...existingInteractions.interactions,
-                ],
-              },
-            });
-          }
-        },
-      });
-
-      setNewInteraction("");
-    } catch (error) {
-      console.error("Error sending interaction:", error);
-      Alert.alert(
-        "Erro",
-        "Não foi possível enviar a interação. Tente novamente."
-      );
-    } finally {
-      setIsSending(false);
-    }
-  };
-
   const actionItems = [
     {
       label: "Deletar",
@@ -243,128 +146,6 @@ export default function CompanyScreen() {
     },
   ];
 
-  const renderInteraction = ({
-    item,
-    index,
-  }: {
-    item: Interaction;
-    index: number;
-  }) => {
-    return (
-      <ThemedView
-        style={styles.interactionContainer}
-        darkColor="#222"
-        lightColor="#ddd"
-      >
-        <View style={styles.interactionContent}>
-          <ThemedText style={styles.interactionText}>
-            {item.content || "Sem conteúdo"}
-          </ThemedText>
-          <ThemedText style={styles.interactionDate}>
-            {item.createdAt
-              ? new Date(parseInt(item.createdAt)).toLocaleString("pt-BR")
-              : "Data não disponível"}
-          </ThemedText>
-        </View>
-      </ThemedView>
-    );
-  };
-
-  const renderHeader = () => (
-    <>
-      <View style={styles.header}>
-        <ThemedText type="title">{company.name}</ThemedText>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => setShowActions(!showActions)}
-        >
-          <Ionicons name="ellipsis-vertical" size={24} color="#777" />
-        </TouchableOpacity>
-
-        {showActions && (
-          <ThemedView
-            style={styles.actionsContainer}
-            darkColor="#222"
-            lightColor="#fff"
-          >
-            {actionItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.actionItem}
-                onPress={() => {
-                  item.onPress();
-                  setShowActions(false);
-                }}
-              >
-                <Ionicons
-                  name={item.icon as any}
-                  size={20}
-                  color={item.destructive ? "#FF3B30" : "#445"}
-                  style={styles.actionIcon}
-                />
-                <ThemedText
-                  style={item.destructive ? styles.destructiveText : {}}
-                >
-                  {item.label}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ThemedView>
-        )}
-      </View>
-
-      <ThemedView style={styles.section}>
-        <View
-          style={{
-            flexDirection: "column",
-            alignItems: "flex-start",
-            justifyContent: "center",
-            maxHeight: 100,
-            width: "100%",
-          }}
-        >
-          <ThemedText style={styles.label}>Status</ThemedText>
-          <View style={styles.pickerContainer}>
-            <ThemedPicker
-              selectedValue={company.status}
-              onValueChange={handleStatusChange}
-              items={companyStatusColumns.map((status) => ({
-                label: status.name,
-                value: status.id as CompanyStatus,
-              }))}
-            />
-          </View>
-        </View>
-        {company.phone && (
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.label}>Telefone</ThemedText>
-            <ThemedText>{company?.phone}</ThemedText>
-          </View>
-        )}
-        {company.website && (
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.label}>Website</ThemedText>
-            <ThemedText style={styles.link}>{company.website}</ThemedText>
-          </View>
-        )}
-        {company.leadSource && (
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.label}>Fonte de Lead</ThemedText>
-            <ThemedText>{company.leadSource}</ThemedText>
-          </View>
-        )}
-        {company.potentialValue && (
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.label}>Valor Potencial</ThemedText>
-            <ThemedText>
-              {"$" + company.potentialValue.toLocaleString()}
-            </ThemedText>
-          </View>
-        )}
-      </ThemedView>
-    </>
-  );
-
   return (
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
@@ -372,65 +153,99 @@ export default function CompanyScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 50}
       >
-        {renderHeader()}
-        <FlatList
-          data={interactionsData?.interactions || []}
-          renderItem={renderInteraction}
-          keyExtractor={(item) => item.id.toString()}
-          ListEmptyComponent={() => {
-            if (loadingInteractions) {
-              return (
-                <View style={styles.emptyContainer}>
-                  <ThemedText style={styles.emptyText}>
-                    Carregando interações...
-                  </ThemedText>
-                </View>
-              );
-            }
-            if (interactionsError) {
-              return (
-                <View style={styles.emptyContainer}>
-                  <ThemedText style={styles.emptyText}>
-                    Erro ao carregar interações: {interactionsError.message}
-                  </ThemedText>
-                </View>
-              );
-            }
-            return (
-              <View style={styles.emptyContainer}>
-                <ThemedText style={styles.emptyText}>
-                  Nenhuma interação registrada ainda.
-                </ThemedText>
-              </View>
-            );
-          }}
-          contentContainerStyle={styles.flatListContent}
-          style={styles.flatList}
-        />
-        <ThemedView style={styles.inputContainer}>
-          <ThemedInput
-            value={newInteraction}
-            onChangeText={setNewInteraction}
-            placeholder="Digite sua mensagem..."
-            multiline
-            style={styles.input}
-          />
+        <View style={styles.header}>
+          <ThemedText type="title">{company.name}</ThemedText>
           <TouchableOpacity
-            style={[
-              styles.sendButton,
-              (!newInteraction.trim() || isSending) &&
-                styles.sendButtonDisabled,
-            ]}
-            onPress={handleSendInteraction}
-            disabled={!newInteraction.trim() || isSending}
+            style={styles.actionButton}
+            onPress={() => setShowActions(!showActions)}
           >
-            <Ionicons
-              name={isSending ? "time" : "send"}
-              size={20}
-              color="#fff"
-            />
+            <Ionicons name="ellipsis-vertical" size={24} color="#777" />
           </TouchableOpacity>
+
+          {showActions && (
+            <ThemedView
+              style={styles.actionsContainer}
+              darkColor="#222"
+              lightColor="#fff"
+            >
+              {actionItems.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.actionItem}
+                  onPress={() => {
+                    item.onPress();
+                    setShowActions(false);
+                  }}
+                >
+                  <Ionicons
+                    name={item.icon as any}
+                    size={20}
+                    color={item.destructive ? "#FF3B30" : "#445"}
+                    style={styles.actionIcon}
+                  />
+                  <ThemedText
+                    style={item.destructive ? styles.destructiveText : {}}
+                  >
+                    {item.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ThemedView>
+          )}
+        </View>
+
+        <ThemedView style={styles.section}>
+          <View
+            style={{
+              flexDirection: "column",
+              alignItems: "flex-start",
+              justifyContent: "center",
+              maxHeight: 100,
+              width: "100%",
+            }}
+          >
+            <ThemedText style={styles.label}>Status</ThemedText>
+            <View style={styles.pickerContainer}>
+              <ThemedPicker
+                selectedValue={company.status}
+                onValueChange={handleStatusChange}
+                items={companyStatusColumns.map((status) => ({
+                  label: status.name,
+                  value: status.id as CompanyStatus,
+                }))}
+              />
+            </View>
+          </View>
+          {company.phone && (
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.label}>Telefone</ThemedText>
+              <ThemedText>{company?.phone || ""}</ThemedText>
+            </View>
+          )}
+          {company.website && (
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.label}>Website</ThemedText>
+              <ThemedText style={styles.link}>
+                {company.website || ""}
+              </ThemedText>
+            </View>
+          )}
+          {company.leadSource && (
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.label}>Fonte de Lead</ThemedText>
+              <ThemedText>{company.leadSource || ""}</ThemedText>
+            </View>
+          )}
+          {company.potentialValue && (
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.label}>Valor Potencial</ThemedText>
+              <ThemedText>
+                {"$" + company.potentialValue.toLocaleString()}
+              </ThemedText>
+            </View>
+          )}
         </ThemedView>
+        <InteractionsList company={company} />
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -444,13 +259,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  flatList: {
-    flex: 1,
-  },
-  flatListContent: {
-    padding: 8,
-    paddingBottom: 16,
-  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -459,63 +267,6 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: 8,
-  },
-  emptyContainer: {
-    minHeight: 100,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  emptyText: {
-    color: "#666",
-  },
-  interactionContainer: {
-    marginBottom: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  interactionContent: {
-    padding: 12,
-  },
-  interactionText: {
-    fontSize: 16,
-  },
-  interactionDate: {
-    fontSize: 12,
-    marginTop: 4,
-    color: "#777",
-  },
-  inputContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    padding: 12,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    minHeight: 48,
-    maxHeight: 120,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    fontSize: 16,
-  },
-  sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#007AFF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
   },
   actionsContainer: {
     position: "absolute",
